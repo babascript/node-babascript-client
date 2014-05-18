@@ -10,7 +10,13 @@
   },
   "author": "",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "eventemitter2": "^0.4.13",
+    "linda-socket.io": "^0.2.0",
+    "socket.io-client": "^0.9.16",
+    "underscore": "^1.6.0",
+    "babascript": "^0.1.7"
+  },
   "devDependencies": {
     "coffeelint": "^1.3.0",
     "coffeelint-stylish": "0.0.1",
