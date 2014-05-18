@@ -1,14 +1,16 @@
 {
-  "name": "",
-  "version": "0.0.0",
-  "private": true,
-  "description": "",
-  "bin": "",
+  "name": "babascript-client",
+  "version": "0.0.1",
+  "description": "babascript client for node",
   "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/babascript/node-babascript-client"
+  },
   "scripts": {
     "test": "grunt test"
   },
-  "author": "",
+  "author": "Takumi Baba",
   "license": "MIT",
   "dependencies": {
     "eventemitter2": "^0.4.13",
