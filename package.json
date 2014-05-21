@@ -1,8 +1,8 @@
 {
   "name": "babascript-client",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "babascript client for node",
-  "main": "lib/index.js",
+  "main": "lib/client.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/babascript/node-babascript-client"
