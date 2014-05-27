@@ -9,10 +9,6 @@ class Client extends EventEmitter
     socket = SocketIOClient.connect @api, {'force new connection': true}
     @linda = new LindaSocketIOClient().connect socket
     @linda.io.once "connect", @connect
-    # if !@linda.io.socket.open
-    #   @linda.io.once "connect", @connect
-    # else
-    #   @connect()
     @tasks = []
     @id = @getId()
 
@@ -38,8 +34,6 @@ class Client extends EventEmitter
 
   broadcast: ->
     t = {baba: "script", type: "broadcast"}
-    # 一度、readしてデータを取得する？
-
     @group.read t, (err, tuple)=>
       @getTask err, tuple
       @group.watch t, @getTask
