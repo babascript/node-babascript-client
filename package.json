@@ -1,6 +1,6 @@
 {
   "name": "babascript-client",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "babascript client for node",
   "main": "lib/client.js",
   "repository": {
