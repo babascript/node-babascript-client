@@ -8,10 +8,11 @@ class Client extends EventEmitter
     @api = options.linda || 'http://linda.babascript.org'
     socket = SocketIOClient.connect @api, {'force new connection': true}
     @linda = new LindaSocketIOClient().connect socket
-    if !@linda.io.socket.open
-      @linda.io.once "connect", @connect
-    else
-      @connect()
+    @linda.io.once "connect", @connect
+    # if !@linda.io.socket.open
+    #   @linda.io.once "connect", @connect
+    # else
+    #   @connect()
     @tasks = []
     @id = @getId()
 
