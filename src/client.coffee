@@ -4,13 +4,11 @@ SocketIOClient = require "socket.io-client"
 
 class Client extends EventEmitter
 
-  # api: "http://127.0.0.1:3000"
   api: "http://linda.babascript.org"
 
   constructor: (@name) ->
-    options =
-      'force new connection': true
-    socket = SocketIOClient.connect @api, options
+    api = options.linda || @api
+    socket = SocketIOClient.connect api, {'force new connection': true}
     @linda = new LindaSocketIOClient().connect socket
     if !@linda.io.socket.open
       @linda.io.once "connect", @connect
