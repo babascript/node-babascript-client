@@ -1,24 +1,82 @@
 EventEmitter = require("EventEmitter2").EventEmitter2
 LindaSocketIOClient = require("linda-socket.io").Client
 SocketIOClient = require "socket.io-client"
+agent = require 'superagent'
+
+class UserAttributes extends EventEmitter
+  data: {}
+  isSyncable: false
+  constructor: (@linda) ->
+    super()
+
+  get: (key) ->
+    return if !key?
+    return @data[key]
+
+  __syncStart: (attr) ->
+    return if !attr?
+    @name = attr.username
+    __data = null
+    for key, value of attr
+      if !@get(key)?
+        @set key, value
+      else
+        __data = {} if !__data?
+        __data[key] = value
+    @isSyncable = true
+    @emit "get_data", @data
+    @ts = @linda.tuplespace(@name)
+    @ts.watch {type: 'userdata'}, (err, result) =>
+      return if err
+      {key, value, username} = result.data
+      if username is @name
+        @set key, value
+        @emit "change_data", @data
+    if __data?
+      for key, value of __data
+        @sync key, value
+
+  sync: (key, value) =>
+    @ts.write {type: 'userdata-write', key: key, value: value}
+
+  set: (key, value, options={sync: false}) ->
+    return if !key? or !value?
+    if options?.sync and @isSyncable is true
+      @sync key, value
+    else
+      @data[key] = value
+
 
 class Client extends EventEmitter
 
-  constructor: (@name, options={}) ->
-    @api = options.manager || 'http://linda.babascript.org'
+  constructor: (@name, @options={}) ->
+    @api = options?.manager || 'http://linda.babascript.org'
     socket = SocketIOClient.connect @api , {'force new connection': true}
     @linda = new LindaSocketIOClient().connect socket
     @linda.io.once "connect", @connect
     @tasks = []
+    @attributes = new UserAttributes @linda
     @id = @getId()
+    return @
 
   connect: =>
+    if !@options?.manager?
+      @_connect()
+    else
+      {host, port} = @linda.io.socket.options
+      if @options.manager
+        agent.get("#{host}:#{port}/api/user/#{@name}").end (err, res) =>
+          if res?.statusCode is 200
+            data = res.body.data.attribute
+            data['username'] = res.body.data.username
+            @attributes.__syncStart data
+          @_connect()
 
+  _connect: =>
     @group = @linda.tuplespace @name
     @next()
     @broadcast()
     @unicast()
-    @userAttribute()
 
   next: ->
     if @tasks.length > 0
@@ -82,8 +140,6 @@ class Client extends EventEmitter
     @group.watch {baba: "script", type: "aliveCheck"}, (err, tuple)=>
       @group.write {baba: "script", alive: true, id: @id}
 
-  userAttribute: ->
-
   getTask: (err, tuple)=>
     return err if err
     @group.write {baba: 'script', type: 'report', value: 'taked', tuple: tuple}
@@ -92,5 +148,6 @@ class Client extends EventEmitter
 
   getId: ->
     return "#{Math.random()*10000}_#{Math.random()*10000}"
+
 
 module.exports = Client
