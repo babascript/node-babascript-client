@@ -5,24 +5,31 @@ SocketIOClient = require "socket.io-client"
 class Client extends EventEmitter
 
   constructor: (@name, options={}) ->
-    @api = options.linda || 'http://linda.babascript.org'
-    socket = SocketIOClient.connect @api, {'force new connection': true}
+    @api = options.manager || 'http://linda.babascript.org'
+    socket = SocketIOClient.connect @api , {'force new connection': true}
     @linda = new LindaSocketIOClient().connect socket
     @linda.io.once "connect", @connect
     @tasks = []
     @id = @getId()
 
   connect: =>
+
     @group = @linda.tuplespace @name
     @next()
     @broadcast()
     @unicast()
+    @userAttribute()
 
   next: ->
     if @tasks.length > 0
       task = @tasks[0]
       format = task.format
       @emit "get_task", task
+      @group.write
+        baba: 'script'
+        type: 'report'
+        value: 'taked'
+        tuple: task
     else
       @group.take {baba: "script", type: "eval"}, @getTask
 
@@ -64,7 +71,7 @@ class Client extends EventEmitter
       type: "return"
       value: value
       cid: task.cid
-      worker: @name
+      worker: options.worker || @name
       options: options
       name: @group.name
       _task: task
@@ -75,8 +82,11 @@ class Client extends EventEmitter
     @group.watch {baba: "script", type: "aliveCheck"}, (err, tuple)=>
       @group.write {baba: "script", alive: true, id: @id}
 
+  userAttribute: ->
+
   getTask: (err, tuple)=>
     return err if err
+    @group.write {baba: 'script', type: 'report', value: 'taked', tuple: tuple}
     @tasks.push tuple.data
     @emit "get_task", tuple.data if @tasks.length > 0
 
