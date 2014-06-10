@@ -30,19 +30,22 @@ class UserAttributes extends EventEmitter
       return if err
       {key, value, username} = result.data
       if username is @name
-        @set key, value
-        @emit "change_data", @data
+        v = @get key
+        if v isnt value
+          @set key, value
+          @emit "change_data", @data
     if __data?
       for key, value of __data
         @sync key, value
 
   sync: (key, value) =>
-    @ts.write {type: 'userdata-write', key: key, value: value}
+    @ts.write {type: 'update', key: key, value: value}
 
   set: (key, value, options={sync: false}) ->
     return if !key? or !value?
     if options?.sync and @isSyncable is true
-      @sync key, value
+      if @get(key) isnt value
+        @sync key, value
     else
       @data[key] = value
 
@@ -51,12 +54,15 @@ class Client extends EventEmitter
 
   constructor: (@name, @options={}) ->
     @api = options?.manager || 'http://linda.babascript.org'
-    socket = SocketIOClient.connect @api , {'force new connection': true}
+    socket = SocketIOClient.connect @api, {'force new connection': true}
     @linda = new LindaSocketIOClient().connect socket
-    @linda.io.once "connect", @connect
     @tasks = []
     @attributes = new UserAttributes @linda
     @id = @getId()
+    if @linda.io.socket.open is true
+      @connect()
+    else
+      @linda.io.on "connect", @connect
     return @
 
   connect: =>
@@ -67,8 +73,9 @@ class Client extends EventEmitter
       if @options.manager
         agent.get("#{host}:#{port}/api/user/#{@name}").end (err, res) =>
           if res?.statusCode is 200
-            data = res.body.data.attribute
-            data['username'] = res.body.data.username
+            data =
+              username: res.body.username
+              attribute: res.body.attribute
             @attributes.__syncStart data
           @_connect()
 
@@ -77,6 +84,7 @@ class Client extends EventEmitter
     @next()
     @broadcast()
     @unicast()
+    @watchCancel()
 
   next: ->
     if @tasks.length > 0
@@ -98,20 +106,20 @@ class Client extends EventEmitter
       @group.watch t, @getTask
 
   broadcast: ->
+    # ここでずっとリードをやめて、setTimeout でwatchに切り替え
     t = {baba: "script", type: "broadcast"}
     @group.read t, (err, tuple)=>
       @getTask err, tuple
       @group.watch t, @getTask
 
   watchCancel: (callback) ->
-    @group.watch {baba: "script", type: "cancel"}, (err, tple) ->
-      cancelTasks = _.where @tasks, {cid: tuple.cid}
-      if cancelTasks?
-        for task in cancelTasks
-          if task is @tasks[0]
-            @emit "cancel_task", task
+    @group.watch {baba: "script", type: "cancel"}, (err, tuple) =>
+      _.each @tasks, (task, i) =>
+        if task.cid is tuple.data.cid
+          @tasks.splice i, 1
+          if i is 0
+            @emit "cancel_task", 'cancel'
             @next()
-          @tasks.remove task
 
   doCancel: ->
     cid = @tasks.get "cid"
@@ -150,4 +158,7 @@ class Client extends EventEmitter
     return "#{Math.random()*10000}_#{Math.random()*10000}"
 
 
-module.exports = Client
+if window?
+  window.BabascriptClient = Client
+else if module?.exports?
+  module.exports = Client
