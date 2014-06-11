@@ -1,4 +1,5 @@
-EventEmitter = require("EventEmitter2").EventEmitter2
+# EventEmitter = require("EventEmitter2").EventEmitter2
+EventEmitter = require("events").EventEmitter
 LindaSocketIOClient = require("linda-socket.io").Client
 SocketIOClient = require "socket.io-client"
 agent = require 'superagent'
