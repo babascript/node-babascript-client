@@ -11,6 +11,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-notify'
 
   grunt.registerTask 'test',    [ 'coffeelint', 'coffee', 'simplemocha' ]
+  grunt.registerTask 'reload',  [ 'coffeelint', 'coffee', 'watch' ]
   grunt.registerTask 'default', [ 'test', 'watch' ]
   grunt.registerMultiTask 'coffeelint', 'CoffeeLint', ->
     count = e: 0, w: 0
@@ -90,6 +91,7 @@ module.exports = (grunt) ->
         reporter: 'spec'
         compilers: 'coffee:coffee-script'
         ignoreLeaks: no
+        timeout: 10000
       dist:
         src: [ 'tests/test.coffee' ]
 
@@ -98,5 +100,5 @@ module.exports = (grunt) ->
         interrupt: yes
       dist:
         files: [ 'src/**/*.coffee', 'tests/**/*.coffee' ]
-        tasks: [ 'test' ]
-
+        tasks: [ 'coffeelint', 'coffee']
+        # tasks: [ 'test' ]

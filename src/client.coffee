@@ -122,7 +122,8 @@ class Client extends EventEmitter
             @next()
 
   doCancel: ->
-    cid = @tasks.get "cid"
+    task = @tasks.shift()
+    cid = task.get "cid"
     tuple =
       baba: "script"
       type: "cancel"
@@ -150,7 +151,6 @@ class Client extends EventEmitter
 
   getTask: (err, tuple)=>
     return err if err
-    @group.write {baba: 'script', type: 'report', value: 'taked', tuple: tuple}
     @tasks.push tuple.data
     @emit "get_task", tuple.data if @tasks.length > 0
 
