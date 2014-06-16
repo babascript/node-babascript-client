@@ -2,9 +2,9 @@ process.env.NODE_ENV = "test"
 
 path = require "path"
 assert = require "assert"
-Babascript = require '../../node-babascript/lib/script'
-Client = require path.resolve "./lib/client"
-_    = require "underscore"
+Babascript = require "babascript"
+Client = require path.resolve "lib/client"
+_    = require "lodash"
 
 describe "client test", ->
 
