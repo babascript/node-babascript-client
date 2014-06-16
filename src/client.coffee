@@ -1,8 +1,8 @@
-# EventEmitter = require("EventEmitter2").EventEmitter2
 EventEmitter = require("events").EventEmitter
 LindaSocketIOClient = require("linda-socket.io").Client
 SocketIOClient = require "socket.io-client"
 agent = require 'superagent'
+_ = require 'lodash'
 
 class UserAttributes extends EventEmitter
   data: {}
@@ -14,11 +14,11 @@ class UserAttributes extends EventEmitter
     return if !key?
     return @data[key]
 
-  __syncStart: (attr) ->
-    return if !attr?
-    @name = attr.username
+  __syncStart: (_data) ->
+    return if !_data?
+    @name = _data.username
     __data = null
-    for key, value of attr
+    for key, value of _data.attribute
       if !@get(key)?
         @set key, value
       else
@@ -33,7 +33,7 @@ class UserAttributes extends EventEmitter
       if username is @name
         v = @get key
         if v isnt value
-          @set key, value
+          @set key, value, {sync: false}
           @emit "change_data", @data
     if __data?
       for key, value of __data
@@ -55,6 +55,10 @@ class Client extends EventEmitter
 
   constructor: (@name, @options={}) ->
     @api = options?.manager || 'http://linda.babascript.org'
+    if @options.query?
+      @api += "/?"
+      for key, value of @options.query
+        @api += "#{key}=#{value}&"
     socket = SocketIOClient.connect @api, {'force new connection': true}
     @linda = new LindaSocketIOClient().connect socket
     @tasks = []
@@ -63,7 +67,8 @@ class Client extends EventEmitter
     if @linda.io.socket.open is true
       @connect()
     else
-      @linda.io.on "connect", @connect
+      @linda.io.on "connect", =>
+        @connect()
     return @
 
   connect: =>
@@ -107,9 +112,15 @@ class Client extends EventEmitter
       @group.watch t, @getTask
 
   broadcast: ->
-    # ここでずっとリードをやめて、setTimeout でwatchに切り替え
     t = {baba: "script", type: "broadcast"}
-    @group.read t, (err, tuple)=>
+    cid = ""
+    timeoutId = setTimeout =>
+      @group.cancel cid
+      @group.watch t, @getTask
+    , 2000
+    cid = @group.read t, (err, tuple) =>
+      return if err
+      clearInterval timeoutId
       @getTask err, tuple
       @group.watch t, @getTask
 
@@ -129,8 +140,8 @@ class Client extends EventEmitter
       baba: "script"
       type: "cancel"
       cid: cid
-    @tasks.shift()
     @group.write tuple
+    @next()
 
   returnValue: (value, options={}) ->
     task = @tasks.shift()
