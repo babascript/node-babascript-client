@@ -14,13 +14,13 @@ describe "client test", ->
     done()
 
   it "valid namespace", (done) ->
-    space = "baba_namespace"
+    space = "__baba_namespace"
     baba = new Babascript space
     assert.equal baba.id, space
     done()
 
   it "baba constructor's arguments[length-1,2] is function", (done) ->
-    space = "baba_constructor_event"
+    space = "__baba_constructor_event"
     baba = new Babascript space
     client = new Client space
     client.on "get_task", (result) ->
@@ -31,7 +31,7 @@ describe "client test", ->
       done()
 
   it "baba should implement callback event", (done) ->
-    space = "baba_add_event"
+    space = "__baba_add_event"
     baba = new Babascript space
     client = new Client space
     client.on "get_task", (task) ->
@@ -43,7 +43,7 @@ describe "client test", ->
       done()
 
   it "return value should be boolean", (done) ->
-    space = "baba_boolean"
+    space = "__baba_boolean"
     baba = new Babascript space
     client = new Client space
     client.on "get_task", ->
@@ -56,7 +56,7 @@ describe "client test", ->
       done()
 
   it "should multiple task", (done) ->
-    space = "baba_multiple_task"
+    space = "__baba_multiple_task"
     baba = new Babascript space
     client = new Client space
     client.on "get_task", (result) ->
@@ -72,7 +72,7 @@ describe "client test", ->
             done()
 
   it "sequential return value", (done) ->
-    space = "user/baba/seq"
+    space = "__user/baba/seq"
     baba = new Babascript space
     count = 0
     ids = []
@@ -95,7 +95,7 @@ describe "client test", ->
 
 
   it "return value should be string", (done) ->
-    space = "baba_string"
+    space = "__baba_string"
     name = "baba"
     baba = new Babascript space
     client = new Client space
@@ -107,7 +107,7 @@ describe "client test", ->
       done()
 
   it "return value should be number", (done) ->
-    space = "baba_number"
+    space = "__baba_number"
     number = 10
     baba = new Babascript space
     client = new Client space
@@ -119,7 +119,7 @@ describe "client test", ->
       done()
 
   it "broadcast task", (done) ->
-    space = "baba_broadcast"
+    space = "__baba_broadcast"
     num = 3
     clients = []
     baba = new Babascript space
@@ -136,7 +136,7 @@ describe "client test", ->
 
   it "single result.worker", (done) ->
 
-    space = "baba_result_worker"
+    space = "__baba_result_worker"
     baba = new Babascript space
     client = new Client space
     client.on "get_task", (tuple) ->
@@ -148,7 +148,7 @@ describe "client test", ->
         done()
 
   it "multi result.worker", (done) ->
-    space = "baba_multi_result_worker"
+    space = "__baba_multi_result_worker"
     num = 3
     clients = []
     baba = new Babascript space
@@ -171,8 +171,8 @@ describe "client test", ->
     , 1000
 
   it "multi player", (done) ->
-    space_baba = "baba_multi_player_baba"
-    space_yamada = "baba_multi_player_yamada"
+    space_baba = "__baba_multi_player_baba"
+    space_yamada = "__baba_multi_player_yamada"
     baba = new Babascript space_baba
     yamada = new Babascript space_yamada
 
@@ -186,7 +186,6 @@ describe "client test", ->
 
     baba.ばばさん (result) ->
       assert.equal result.value, "baba"
-      done()
       yamada.やまだくん (result) ->
         assert.equal result.value, "yamada"
         done()

@@ -14,7 +14,6 @@
   "license": "MIT",
   "dependencies": {
     "babascript": "^0.1.13",
-    "eventemitter2": "^0.4.13",
     "linda-socket.io": "^0.2.0",
     "lodash": "^2.4.1",
     "socket.io-client": "^0.9.16",
