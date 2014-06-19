@@ -4,7 +4,7 @@ SocketIOClient = require "socket.io-client"
 agent = require 'superagent'
 _ = require 'lodash'
 
-class Client extends EventEmitter
+module.exports = class Client extends EventEmitter
 
   constructor: (@name, @options={}) ->
     @api = options?.manager || 'http://linda.babascript.org'
@@ -18,7 +18,7 @@ class Client extends EventEmitter
     @data = {}
     @setFlag = true
     @loadingModules = []
-    @loadedModules = {}
+    @modules = {}
     @id = @getId()
     if @linda.io.socket.open is true
       @connect()
@@ -126,7 +126,7 @@ class Client extends EventEmitter
         name = mod.name
         mod.body.load @, =>
           setTimeout =>
-            @loadedModules[name] = mod
+            @modules[name] = mod
             @setFlag = true
             @__set()
           , 100
