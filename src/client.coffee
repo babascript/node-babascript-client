@@ -12,7 +12,7 @@ module.exports = class Client extends EventEmitter
       @api += "/?"
       for key, value of @options.query
         @api += "#{key}=#{value}&"
-    socket = SocketIOClient.connect @api#, {'force new connection': true}
+    socket = SocketIOClient.connect @api
     @linda = new LindaSocketIOClient().connect socket
     @tasks = []
     @data = {}
