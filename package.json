@@ -2,7 +2,7 @@
   "name": "babascript-client",
   "version": "0.1.2",
   "description": "babascript client for node",
-  "main": "lib/client.js",
+  "main": "dist/client.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/babascript/node-babascript-client"
@@ -16,8 +16,7 @@
     "babascript": "^0.1.13",
     "linda-socket.io": "^0.2.0",
     "lodash": "^2.4.1",
-    "socket.io-client": "^0.9.16",
-    "superagent": "^0.18.0"
+    "socket.io-client": "^0.9.16"
   },
   "devDependencies": {
     "babascript": "^0.1.12",

@@ -3,7 +3,7 @@ process.env.NODE_ENV = "test"
 path = require "path"
 assert = require "assert"
 Babascript = require "babascript"
-Client = require path.resolve "lib/client"
+Client = require path.resolve "dist/client"
 _    = require "lodash"
 
 describe "client test", ->

@@ -1,18 +1,18 @@
 EventEmitter = require("events").EventEmitter
-LindaSocketIOClient = require("linda-socket.io").Client
 SocketIOClient = require "socket.io-client"
-agent = require 'superagent'
 _ = require 'lodash'
+LindaSocketIOClient = require "linda-socket.io/lib/linda-socketio-client"
+LindaSocketIOClient = window.Linda if window?
 
-module.exports = class Client extends EventEmitter
+class Client extends EventEmitter
 
-  constructor: (@name, @options={}) ->
-    @api = options?.manager || 'http://linda.babascript.org'
+  constructor: (@name, @options = {port: 80}) ->
+    @api = @options?.manager || 'http://linda.babascript.org'
     if @options.query?
       @api += "/?"
       for key, value of @options.query
         @api += "#{key}=#{value}&"
-    socket = SocketIOClient.connect @api
+    socket = SocketIOClient.connect @api, {port: @options.port}
     @linda = new LindaSocketIOClient().connect socket
     @tasks = []
     @data = {}
@@ -130,3 +130,9 @@ module.exports = class Client extends EventEmitter
             @setFlag = true
             @__set()
           , 100
+
+module.exports = Client
+# if window?
+#   window.LindaClient = Client
+# else
+#   module.exports = Client

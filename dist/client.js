@@ -1,41 +1,45 @@
 (function() {
-  var Client, EventEmitter, LindaSocketIOClient, SocketIOClient, agent, _,
+  var Client, EventEmitter, LindaSocketIOClient, SocketIOClient, _,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   EventEmitter = require("events").EventEmitter;
 
-  LindaSocketIOClient = require("linda-socket.io").Client;
-
   SocketIOClient = require("socket.io-client");
-
-  agent = require('superagent');
 
   _ = require('lodash');
 
-  module.exports = Client = (function(_super) {
+  LindaSocketIOClient = require("linda-socket.io/lib/linda-socketio-client");
+
+  if (typeof window !== "undefined" && window !== null) {
+    LindaSocketIOClient = window.Linda;
+  }
+
+  Client = (function(_super) {
     __extends(Client, _super);
 
     function Client(name, options) {
-      var key, socket, value, _ref;
+      var key, socket, value, _ref, _ref1;
       this.name = name;
-      this.options = options != null ? options : {};
+      this.options = options != null ? options : {
+        port: 80
+      };
       this.__set = __bind(this.__set, this);
       this.set = __bind(this.set, this);
       this.getTask = __bind(this.getTask, this);
       this.connect = __bind(this.connect, this);
-      this.api = (options != null ? options.manager : void 0) || 'http://linda.babascript.org';
+      this.api = ((_ref = this.options) != null ? _ref.manager : void 0) || 'http://linda.babascript.org';
       if (this.options.query != null) {
         this.api += "/?";
-        _ref = this.options.query;
-        for (key in _ref) {
-          value = _ref[key];
+        _ref1 = this.options.query;
+        for (key in _ref1) {
+          value = _ref1[key];
           this.api += "" + key + "=" + value + "&";
         }
       }
       socket = SocketIOClient.connect(this.api, {
-        'force new connection': true
+        port: this.options.port
       });
       this.linda = new LindaSocketIOClient().connect(socket);
       this.tasks = [];
@@ -249,5 +253,7 @@
     return Client;
 
   })(EventEmitter);
+
+  module.exports = Client;
 
 }).call(this);
