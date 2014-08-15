@@ -1,4 +1,5 @@
 src
 tests
 Gruntfile.coffee
+gulpfile.coffee
 .travis.yml
