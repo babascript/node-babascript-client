@@ -132,7 +132,3 @@ class Client extends EventEmitter
           , 100
 
 module.exports = Client
-# if window?
-#   window.LindaClient = Client
-# else
-#   module.exports = Client
