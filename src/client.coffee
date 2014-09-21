@@ -11,7 +11,7 @@ class Client extends EventEmitter
     @data = {}
     @loadingPlugins = []
     @plugins = {}
-    @id = @getId()
+    @clientId = @getId()
     @on "connect", @connect
     return @
 
@@ -62,7 +62,7 @@ class Client extends EventEmitter
       type: "return"
       value: value
       cid: task.cid
-      worker: options.worker || @id
+      worker: @id
       options: options
       _task: task
     @adapter.send tuple
@@ -88,11 +88,11 @@ class Client extends EventEmitter
 
   __set: =>
     return @next() if @loadingPlugins.length is 0
-      @next()
-      plugin = @loadingPlugins.shift()
-      name = plugin.name
-      plugin.body.load @, =>
-        @plugins[name] = plugin
-        @__set()
+    @next()
+    plugin = @loadingPlugins.shift()
+    name = plugin.name
+    plugin.body.load @, =>
+      @plugins[name] = plugin
+      @__set()
 
 module.exports = Client

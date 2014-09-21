@@ -3,3 +3,11 @@ node_js:
   - "0.10"
 before_script:
   - npm install -g grunt-cli
+  - npm install
+script:
+  - npm test
+notifications:
+  email:
+    - s09704tb@gmail.com
+  slack:
+    secure: JCGzvvi3/AOI01VzL+MtM7AW2noe7ZM72unfwkkBNckwcu5yAM9PZdM4pRvyeymCZxal1gl2ir16EBk2rDvJw0MSu6AEUbd/ol91UPt2eoTmhh83WzEad5CCYDq3H7kHHgBHY9Xm/nuKvGKMYxgmOLwbCtp1JpDyV58mSnQLN7I=
