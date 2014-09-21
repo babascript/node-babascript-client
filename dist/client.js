@@ -1,259 +1,179 @@
-(function() {
-  var Client, EventEmitter, LindaSocketIOClient, SocketIOClient, _,
-    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
-    __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+var Client, EventEmitter, LindaAdapter, _,
+  __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+  __hasProp = {}.hasOwnProperty,
+  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  EventEmitter = require("events").EventEmitter;
+EventEmitter = require("events").EventEmitter;
 
-  SocketIOClient = require("socket.io-client");
+LindaAdapter = require('babascript-linda-adapter');
 
-  _ = require('lodash');
+_ = require('lodash');
 
-  LindaSocketIOClient = require("linda-socket.io/lib/linda-socketio-client");
+Client = (function(_super) {
+  __extends(Client, _super);
 
-  if (typeof window !== "undefined" && window !== null) {
-    LindaSocketIOClient = window.Linda;
+  function Client(id, options) {
+    this.id = id;
+    this.options = options != null ? options : {
+      port: 80
+    };
+    this.__set = __bind(this.__set, this);
+    this.set = __bind(this.set, this);
+    this.getTask = __bind(this.getTask, this);
+    this.connect = __bind(this.connect, this);
+    this.adapter = this.options.adapter || new LindaAdapter();
+    this.adapter.attach(this);
+    this.tasks = [];
+    this.data = {};
+    this.loadingPlugins = [];
+    this.plugins = {};
+    this.id = this.getId();
+    this.on("connect", this.connect);
+    return this;
   }
 
-  Client = (function(_super) {
-    __extends(Client, _super);
-
-    function Client(name, options) {
-      var key, socket, value, _ref, _ref1;
-      this.name = name;
-      this.options = options != null ? options : {
-        port: 80
-      };
-      this.__set = __bind(this.__set, this);
-      this.set = __bind(this.set, this);
-      this.getTask = __bind(this.getTask, this);
-      this.connect = __bind(this.connect, this);
-      this.api = ((_ref = this.options) != null ? _ref.manager : void 0) || 'http://linda.babascript.org';
-      if (this.options.query != null) {
-        this.api += "/?";
-        _ref1 = this.options.query;
-        for (key in _ref1) {
-          value = _ref1[key];
-          this.api += "" + key + "=" + value + "&";
-        }
+  Client.prototype.connect = function() {
+    var module, name, _ref, _ref1;
+    this.getBroadcast();
+    this.watchCancel();
+    _ref = this.plugins;
+    for (name in _ref) {
+      module = _ref[name];
+      if ((_ref1 = module.body) != null) {
+        _ref1.connect();
       }
-      socket = SocketIOClient.connect(this.api, {
-        port: this.options.port
-      });
-      this.linda = new LindaSocketIOClient().connect(socket);
-      this.tasks = [];
-      this.data = {};
-      this.setFlag = true;
-      this.loadingModules = [];
-      this.modules = {};
-      this.id = this.getId();
-      if (this.linda.io.socket.open === true) {
-        this.connect();
-      } else {
-        this.linda.io.on("connect", (function(_this) {
-          return function() {
-            return _this.connect();
-          };
-        })(this));
-      }
-      return this;
     }
+    return this.next();
+  };
 
-    Client.prototype.connect = function() {
-      var module, name, _ref, _results;
-      this.group = this.linda.tuplespace(this.name);
-      this.next();
-      this.broadcast();
-      this.unicast();
-      this.watchCancel();
-      if (Object.keys(this.modules).length > 0) {
-        _ref = this.modules;
-        _results = [];
-        for (name in _ref) {
-          module = _ref[name];
-          _results.push(module.body.connect());
-        }
-        return _results;
-      }
-    };
-
-    Client.prototype.next = function() {
-      var format, task;
-      if (this.tasks.length > 0) {
-        task = this.tasks[0];
-        format = task.format;
-        this.emit("get_task", task);
-        return this.group.write({
-          baba: 'script',
-          type: 'report',
-          value: 'taked',
-          tuple: task
-        });
-      } else {
-        return this.group.take({
-          baba: "script",
-          type: "eval"
-        }, this.getTask);
-      }
-    };
-
-    Client.prototype.unicast = function() {
-      var t;
-      t = {
-        baba: "script",
-        type: "unicast",
-        unicast: this.id
+  Client.prototype.next = function() {
+    var format, task, tuple;
+    if (this.tasks.length > 0) {
+      task = this.tasks[0];
+      format = task.format;
+      return this.emit("get_task", task);
+    } else {
+      tuple = {
+        baba: 'script',
+        type: 'eval'
       };
-      return this.group.read(t, (function(_this) {
-        return function(err, tuple) {
-          _this.getTask(err, tuple);
-          return _this.group.watch(t, _this.getTask);
-        };
-      })(this));
-    };
+      return this.adapter.clientReceive(tuple, this.getTask);
+    }
+  };
 
-    Client.prototype.broadcast = function() {
-      var t;
-      t = {
-        baba: "script",
-        type: "broadcast"
-      };
-      return this.group.watch(t, this.getTask);
+  Client.prototype.getBroadcast = function() {
+    var t;
+    t = {
+      baba: "script",
+      type: "broadcast"
     };
+    return this.adapter.clientReceive(t, this.getTask);
+  };
 
-    Client.prototype.watchCancel = function(callback) {
-      return this.group.watch({
-        baba: "script",
-        type: "cancel"
-      }, (function(_this) {
-        return function(err, tuple) {
-          return _.each(_this.tasks, function(task, i) {
-            if (task.cid === tuple.data.cid) {
-              _this.tasks.splice(i, 1);
-              if (i === 0) {
-                _this.emit("cancel_task", 'cancel');
-                return _this.next();
-              }
+  Client.prototype.watchCancel = function(callback) {
+    var tuple;
+    tuple = {
+      baba: 'script',
+      type: 'cancel'
+    };
+    return this.adapter.clientReceive(tuple, (function(_this) {
+      return function(err, tuple) {
+        return _.each(_this.tasks, function(task, i) {
+          if (task.cid === tuple.data.cid) {
+            _this.tasks.splice(i, 1);
+            if (i === 0) {
+              _this.emit("cancel_task", {
+                reason: 'cancel'
+              });
+              return _this.next();
             }
-          });
-        };
-      })(this));
-    };
-
-    Client.prototype.cancel = function() {
-      var cid, task, tuple;
-      task = this.tasks.shift();
-      cid = task.cid;
-      tuple = {
-        baba: "script",
-        type: "cancel",
-        cid: cid
+          }
+        });
       };
-      this.group.write(tuple);
-      return this.next();
-    };
+    })(this));
+  };
 
-    Client.prototype.returnValue = function(value, options) {
-      var module, name, task, tuple, _ref;
-      if (options == null) {
-        options = {};
+  Client.prototype.cancel = function() {
+    var cid, task, tuple;
+    task = this.tasks.shift();
+    cid = task.cid;
+    tuple = {
+      baba: "script",
+      type: "cancel",
+      cid: cid
+    };
+    this.adapter.send(tuple);
+    return this.next();
+  };
+
+  Client.prototype.returnValue = function(value, options) {
+    var module, name, task, tuple, _ref, _ref1;
+    if (options == null) {
+      options = {};
+    }
+    task = this.tasks.shift();
+    tuple = {
+      baba: "script",
+      type: "return",
+      value: value,
+      cid: task.cid,
+      worker: options.worker || this.id,
+      options: options,
+      _task: task
+    };
+    this.adapter.send(tuple);
+    _ref = this.plugins;
+    for (name in _ref) {
+      module = _ref[name];
+      if ((_ref1 = module.body) != null) {
+        _ref1.returnValue(tuple);
       }
-      task = this.tasks.shift();
-      tuple = {
-        baba: "script",
-        type: "return",
-        value: value,
-        cid: task.cid,
-        worker: options.worker || this.name,
-        options: options,
-        name: this.group.name,
-        _task: task
+    }
+    return this.next();
+  };
+
+  Client.prototype.getTask = function(err, tuple) {
+    var module, name, _ref, _ref1, _results;
+    if (err) {
+      return err;
+    }
+    this.tasks.push(tuple.data);
+    if (this.tasks.length > 0) {
+      this.emit("get_task", tuple.data);
+    }
+    _ref = this.plugins;
+    _results = [];
+    for (name in _ref) {
+      module = _ref[name];
+      _results.push((_ref1 = module.body) != null ? _ref1.receive(tuple) : void 0);
+    }
+    return _results;
+  };
+
+  Client.prototype.getId = function() {
+    return "" + (Math.random() * 10000) + "_" + (Math.random() * 10000);
+  };
+
+  Client.prototype.set = function(name, plugin) {
+    this.loadingPlugins.push({
+      name: name,
+      body: plugin
+    });
+    return this.__set();
+  };
+
+  Client.prototype.__set = function() {
+    var name, plugin;
+    return this.next()(this.loadingPlugins.length === 0 ? (this.next(), plugin = this.loadingPlugins.shift(), name = plugin.name, plugin.body.load(this, (function(_this) {
+      return function() {
+        _this.plugins[name] = plugin;
+        return _this.__set();
       };
-      this.group.write(tuple);
-      if (Object.keys(this.modules).length > 0) {
-        _ref = this.modules;
-        for (name in _ref) {
-          module = _ref[name];
-          module.body.returnValue(tuple);
-        }
-      }
-      return this.next();
-    };
+    })(this))) : void 0);
+  };
 
-    Client.prototype.watchAliveCheck = function() {
-      return this.group.watch({
-        baba: "script",
-        type: "aliveCheck"
-      }, (function(_this) {
-        return function(err, tuple) {
-          return _this.group.write({
-            baba: "script",
-            alive: true,
-            id: _this.id
-          });
-        };
-      })(this));
-    };
+  return Client;
 
-    Client.prototype.getTask = function(err, tuple) {
-      var module, name, _ref, _results;
-      if (err) {
-        return err;
-      }
-      this.tasks.push(tuple.data);
-      if (this.tasks.length > 0) {
-        this.emit("get_task", tuple.data);
-      }
-      if (Object.keys(this.modules).length > 0) {
-        _ref = this.modules;
-        _results = [];
-        for (name in _ref) {
-          module = _ref[name];
-          _results.push(module.body.receive(tuple));
-        }
-        return _results;
-      }
-    };
+})(EventEmitter);
 
-    Client.prototype.getId = function() {
-      return "" + (Math.random() * 10000) + "_" + (Math.random() * 10000);
-    };
-
-    Client.prototype.set = function(name, mod) {
-      this.loadingModules.push({
-        name: name,
-        body: mod
-      });
-      return this.__set();
-    };
-
-    Client.prototype.__set = function() {
-      var mod, name;
-      if (this.loadingModules.length === 0) {
-        return this.next();
-      } else {
-        if (this.setFlag) {
-          this.setFlag = false;
-          mod = this.loadingModules.shift();
-          name = mod.name;
-          return mod.body.load(this, (function(_this) {
-            return function() {
-              return setTimeout(function() {
-                _this.modules[name] = mod;
-                _this.setFlag = true;
-                return _this.__set();
-              }, 100);
-            };
-          })(this));
-        }
-      }
-    };
-
-    return Client;
-
-  })(EventEmitter);
-
-  module.exports = Client;
-
-}).call(this);
+module.exports = Client;

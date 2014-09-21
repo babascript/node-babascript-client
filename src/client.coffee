@@ -1,72 +1,48 @@
 EventEmitter = require("events").EventEmitter
-SocketIOClient = require "socket.io-client"
+LindaAdapter = require 'babascript-linda-adapter'
 _ = require 'lodash'
-LindaSocketIOClient = require "linda-socket.io/lib/linda-socketio-client"
-LindaSocketIOClient = window.Linda if window?
 
 class Client extends EventEmitter
 
-  constructor: (@name, @options = {port: 80}) ->
-    @api = @options?.manager || 'http://linda.babascript.org'
-    if @options.query?
-      @api += "/?"
-      for key, value of @options.query
-        @api += "#{key}=#{value}&"
-    socket = SocketIOClient.connect @api, {port: @options.port}
-    @linda = new LindaSocketIOClient().connect socket
+  constructor: (@id, @options = {port: 80}) ->
+    @adapter = @options.adapter or new LindaAdapter()
+    @adapter.attach @
     @tasks = []
     @data = {}
-    @setFlag = true
-    @loadingModules = []
-    @modules = {}
+    @loadingPlugins = []
+    @plugins = {}
     @id = @getId()
-    if @linda.io.socket.open is true
-      @connect()
-    else
-      @linda.io.on "connect", =>
-        @connect()
+    @on "connect", @connect
     return @
 
   connect: =>
-    @group = @linda.tuplespace @name
-    @next()
-    @broadcast()
-    @unicast()
+    @getBroadcast()
     @watchCancel()
-    if Object.keys(@modules).length > 0
-      for name, module of @modules
-        module.body.connect()
+    for name, module of @plugins
+      module.body?.connect()
+    @next()
 
   next: ->
     if @tasks.length > 0
       task = @tasks[0]
       format = task.format
       @emit "get_task", task
-      @group.write
-        baba: 'script'
-        type: 'report'
-        value: 'taked'
-        tuple: task
     else
-      @group.take {baba: "script", type: "eval"}, @getTask
+      tuple = {baba: 'script', type: 'eval'}
+      @adapter.clientReceive tuple, @getTask
 
-  unicast: ->
-    t = {baba: "script", type: "unicast", unicast: @id}
-    @group.read t, (err, tuple)=>
-      @getTask err, tuple
-      @group.watch t, @getTask
-
-  broadcast: ->
+  getBroadcast: ->
     t = {baba: "script", type: "broadcast"}
-    @group.watch t, @getTask
+    @adapter.clientReceive t, @getTask
 
   watchCancel: (callback) ->
-    @group.watch {baba: "script", type: "cancel"}, (err, tuple) =>
+    tuple = {baba: 'script', type: 'cancel'}
+    @adapter.clientReceive tuple, (err, tuple) =>
       _.each @tasks, (task, i) =>
         if task.cid is tuple.data.cid
           @tasks.splice i, 1
           if i is 0
-            @emit "cancel_task", 'cancel'
+            @emit "cancel_task", {reason: 'cancel'}
             @next()
 
   cancel: ->
@@ -76,7 +52,7 @@ class Client extends EventEmitter
       baba: "script"
       type: "cancel"
       cid: cid
-    @group.write tuple
+    @adapter.send tuple
     @next()
 
   returnValue: (value, options={}) ->
@@ -86,49 +62,37 @@ class Client extends EventEmitter
       type: "return"
       value: value
       cid: task.cid
-      worker: options.worker || @name
+      worker: options.worker || @id
       options: options
-      name: @group.name
       _task: task
-    @group.write tuple
-    if Object.keys(@modules).length > 0
-      for name, module of @modules
-        module.body.returnValue tuple
+    @adapter.send tuple
+    for name, module of @plugins
+      module.body?.returnValue tuple
     @next()
-
-
-  watchAliveCheck: ->
-    @group.watch {baba: "script", type: "aliveCheck"}, (err, tuple)=>
-      @group.write {baba: "script", alive: true, id: @id}
 
   getTask: (err, tuple)=>
     return err if err
     @tasks.push tuple.data
     @emit "get_task", tuple.data if @tasks.length > 0
-    if Object.keys(@modules).length > 0
-      for name, module of @modules
-        module.body.receive tuple
+    for name, module of @plugins
+      module.body?.receive tuple
 
   getId: ->
     return "#{Math.random()*10000}_#{Math.random()*10000}"
 
-  set: (name, mod) =>
-    @loadingModules.push {name: name, body: mod}
+  set: (name, plugin) =>
+    @loadingPlugins.push
+      name: name
+      body: plugin
     @__set()
 
   __set: =>
-    if @loadingModules.length is 0
+    return @next() if @loadingPlugins.length is 0
       @next()
-    else
-      if @setFlag
-        @setFlag = false
-        mod = @loadingModules.shift()
-        name = mod.name
-        mod.body.load @, =>
-          setTimeout =>
-            @modules[name] = mod
-            @setFlag = true
-            @__set()
-          , 100
+      plugin = @loadingPlugins.shift()
+      name = plugin.name
+      plugin.body.load @, =>
+        @plugins[name] = plugin
+        @__set()
 
 module.exports = Client

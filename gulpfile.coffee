@@ -1,15 +1,14 @@
 'use strict'
 
 gulp = require 'gulp'
-coffee = require 'gulp-coffee'
-coffeelint = require 'gulp-coffeelint'
-coffeescript = require 'coffee-script'
-runSequence = require 'run-sequence'
-browserify = require 'gulp-browserify'
-rename = require 'gulp-rename'
 gutil = require 'gulp-util'
 mocha = require 'gulp-mocha'
-
+coffee = require 'gulp-coffee'
+rename = require 'gulp-rename'
+browserify = require 'gulp-browserify'
+coffeelint = require 'gulp-coffeelint'
+runSequence = require 'run-sequence'
+coffeescript = require 'coffee-script'
 
 gulp.task 'coffee', ->
   path = ""
@@ -31,13 +30,13 @@ gulp.task 'mocha', ->
     timeout: 10 * 1000
 
 gulp.task 'browserify', ->
-  # そのうちやる
+  # TODO 
 
-gulp.task 'serve', ->
-  gulp.watch ['src/**/*.coffee'], ['coffeelint', 'coffee']
+gulp.task 'compile',['coffee', 'browserify'],  ->
+
 
 gulp.task 'test', ->
-  gulp.watch ['tests/**/*.coffee'], ['mocha']
+  gulp.watch ['tests/**/*.coffee'], ['coffeelint', 'mocha']
 
 gulp.task 'default', (callback) ->
   runSequence('coffeelint', ['coffee', 'mocha'], callback)

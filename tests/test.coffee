@@ -80,18 +80,21 @@ describe "client test", ->
     for i in [0..9]
       client = new Client space
       client.on "get_task", (result) ->
+        ids.push @id
         @returnValue true
       clients.push client
-    baba.しーくえんしゃる {format: "boolean"}, (result) ->
-      isExist = _.find ids, (id) ->
-        return id is result.getWorker().id
-      assert.equal isExist, undefined
-      ids.push result.worker
-      count += 1
-      if count > 10
-        done()
-      else
-        baba.しーくえんしゃる {format: "boolean"}, arguments.callee
+    setTimeout ->
+      baba.しーくえんしゃる {format: "boolean"}, (result) ->
+        isExist = _.find ids, (id) ->
+          return id is result.worker
+        assert.equal isExist, undefined
+        ids.push result.worker
+        count += 1
+        if count > 10
+          done()
+        else
+          baba.しーくえんしゃる {format: "boolean"}, arguments.callee
+    , 1000
 
 
   it "return value should be string", (done) ->
@@ -142,9 +145,9 @@ describe "client test", ->
     client.on "get_task", (tuple) ->
       @returnValue true
     baba.りざるとどっとわーかー {format: "boolean"}, (result) ->
-      assert.notEqual result.getWorker(), null
+      assert.notEqual result.worker, null
       result.getWorker().つづき {format: "boolean"}, (result) ->
-        assert.notEqual result.getWorker(), null
+        assert.notEqual result.worker, null
         done()
 
   it "multi result.worker", (done) ->
@@ -160,13 +163,9 @@ describe "client test", ->
     setTimeout ->
       baba.まるちなりざるとどっとわーかー {format: "boolean", broadcast: num}, (result) ->
         r = _.sample result
-        id = r.getWorker().id
-        # これのthis は何？
-        # r.getWorker().on "get_task", (result) ->
-        #   assert.equal result.worker.id, id
-        #   done()
+        id = r.worker
         r.getWorker().てすと {format: "boolean"}, (result) ->
-          assert.equal result.getWorker().id, id
+          assert.equal result.worker, id
           done()
     , 1000
 
