@@ -13,16 +13,20 @@
   Client = (function(_super) {
     __extends(Client, _super);
 
+    Client.address = '';
+
     function Client(id, options) {
       this.id = id;
-      this.options = options != null ? options : {
-        port: 80
-      };
+      this.options = options != null ? options : {};
       this.__set = __bind(this.__set, this);
       this.set = __bind(this.set, this);
       this.getTask = __bind(this.getTask, this);
       this.connect = __bind(this.connect, this);
-      this.adapter = this.options.adapter || new LindaAdapter();
+      if (this.options.adapter != null) {
+        this.adapter = this.options.adapter;
+      } else {
+        this.adapter = new LindaAdapter(Client.address);
+      }
       this.adapter.attach(this);
       this.tasks = [];
       this.data = {};

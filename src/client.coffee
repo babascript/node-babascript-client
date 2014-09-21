@@ -3,9 +3,13 @@ LindaAdapter = require 'babascript-linda-adapter'
 _ = require 'lodash'
 
 class Client extends EventEmitter
+  @address = ''
 
-  constructor: (@id, @options = {port: 80}) ->
-    @adapter = @options.adapter or new LindaAdapter()
+  constructor: (@id, @options = {}) ->
+    if @options.adapter?
+      @adapter = @options.adapter
+    else
+      @adapter = new LindaAdapter Client.address
     @adapter.attach @
     @tasks = []
     @data = {}
