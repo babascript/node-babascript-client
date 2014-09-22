@@ -49,13 +49,14 @@ class Client extends EventEmitter
             @emit "cancel_task", {reason: 'cancel'}
             @next()
 
-  cancel: ->
+  cancel: (reason) ->
     task = @tasks.shift()
     cid = task.cid
     tuple =
       baba: "script"
-      type: "cancel"
+      type: "return"
       cid: cid
+      reason: reason
     @adapter.send tuple
     @next()
 

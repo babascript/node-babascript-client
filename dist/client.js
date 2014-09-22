@@ -98,14 +98,15 @@
       })(this));
     };
 
-    Client.prototype.cancel = function() {
+    Client.prototype.cancel = function(reason) {
       var cid, task, tuple;
       task = this.tasks.shift();
       cid = task.cid;
       tuple = {
         baba: "script",
-        type: "cancel",
-        cid: cid
+        type: "return",
+        cid: cid,
+        reason: reason
       };
       this.adapter.send(tuple);
       return this.next();
