@@ -1,3 +1,5 @@
+'use strict'
+
 EventEmitter = require("events").EventEmitter
 LindaAdapter = require 'babascript-linda-adapter'
 _ = require 'lodash'
@@ -75,10 +77,11 @@ class Client extends EventEmitter
       module.body?.returnValue tuple
     @next()
 
-  getTask: (err, tuple)=>
+  getTask: (err, tuple) =>
     return err if err
     @tasks.push tuple.data
-    @emit "get_task", tuple.data if @tasks.length > 0
+    if @tasks.length > 0
+      @emit "get_task", tuple.data
     for name, module of @plugins
       module.body?.receive tuple
 

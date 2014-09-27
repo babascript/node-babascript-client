@@ -1,4 +1,5 @@
 (function() {
+  'use strict';
   var Client, EventEmitter, LindaAdapter, _,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __hasProp = {}.hasOwnProperty,
