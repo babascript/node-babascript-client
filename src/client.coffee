@@ -75,6 +75,7 @@ class Client extends EventEmitter
     @adapter.send tuple
     for name, module of @plugins
       module.body?.returnValue tuple
+    @emit "return_value", tuple
     @next()
 
   getTask: (err, tuple) =>

@@ -136,6 +136,7 @@
           _ref1.returnValue(tuple);
         }
       }
+      this.emit("return_value", tuple);
       return this.next();
     };
 
