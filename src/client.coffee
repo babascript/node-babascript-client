@@ -60,6 +60,7 @@ class Client extends EventEmitter
       cid: cid
       reason: reason
     @adapter.send tuple
+    @emit "cancel_task", reason
     @next()
 
   returnValue: (value, options={}) ->
