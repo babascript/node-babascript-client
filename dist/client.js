@@ -14,7 +14,7 @@
   Client = (function(_super) {
     __extends(Client, _super);
 
-    Client.address = '';
+    Client.address = 'http://babascript-linda.herokuapp.com';
 
     function Client(id, options) {
       this.id = id;
@@ -26,7 +26,9 @@
       if (this.options.adapter != null) {
         this.adapter = this.options.adapter;
       } else {
-        this.adapter = new LindaAdapter(Client.address);
+        this.adapter = new LindaAdapter(this.address, {
+          port: 80
+        });
       }
       this.adapter.attach(this);
       this.tasks = [];
@@ -35,6 +37,8 @@
       this.plugins = {};
       this.clientId = this.getId();
       this.on("connect", this.connect);
+      this.isNormalTask = false;
+      this.isInterruptTask = false;
       return this;
     }
 
@@ -57,13 +61,23 @@
       if (this.tasks.length > 0) {
         task = this.tasks[0];
         format = task.format;
-        return this.emit("get_task", task);
-      } else {
+        this.emit("get_task", task);
+      }
+      if (!this.isNormalTask) {
         tuple = {
           baba: 'script',
           type: 'eval'
         };
-        return this.adapter.clientReceive(tuple, this.getTask);
+        this.adapter.clientReceive(tuple, this.getTask);
+        this.isNormalTask = true;
+      }
+      if (!this.isInterruptTask) {
+        tuple = {
+          baba: 'script',
+          type: 'interrupt'
+        };
+        this.adapter.clientReceive(tuple, this.getTask);
+        return this.isInterruptTask = true;
       }
     };
 
@@ -85,11 +99,18 @@
       return this.adapter.clientReceive(tuple, (function(_this) {
         return function(err, tuple) {
           return _.each(_this.tasks, function(task, i) {
+            var reason;
             if (task.cid === tuple.data.cid) {
               _this.tasks.splice(i, 1);
+              if (task.type === 'interrupt') {
+                _this.isInterruptTask = false;
+              } else if (task.type === 'eval') {
+                _this.isNormalTask = false;
+              }
               if (i === 0) {
+                reason = tuple.data.reason || 'cancel';
                 _this.emit("cancel_task", {
-                  reason: 'cancel'
+                  reason: reason
                 });
                 return _this.next();
               }
@@ -110,6 +131,12 @@
         reason: reason
       };
       this.adapter.send(tuple);
+      this.emit("cancel_task", reason);
+      if (task.type === 'interrupt') {
+        this.isInterruptTask = false;
+      } else if (task.type === 'eval') {
+        this.isNormalTask = false;
+      }
       return this.next();
     };
 
@@ -137,15 +164,30 @@
         }
       }
       this.emit("return_value", tuple);
+      if (task.type === 'interrupt') {
+        this.isInterruptTask = false;
+      } else if (task.type === 'eval') {
+        this.isNormalTask = false;
+      }
       return this.next();
     };
 
     Client.prototype.getTask = function(err, tuple) {
-      var module, name, _ref, _ref1, _results;
+      var module, name, __tasks, _ref, _ref1, _results;
       if (err) {
         return err;
       }
-      this.tasks.push(tuple.data);
+      if (tuple.data.type === 'eval') {
+        this.tasks.push(tuple.data);
+      } else if (tuple.data.type === 'interrupt') {
+        __tasks = [];
+        if (this.tasks.length > 0) {
+          __tasks.push(this.tasks.shift());
+        }
+        __tasks.push(tuple.data);
+        __tasks.push(this.tasks);
+        this.tasks = __tasks;
+      }
       if (this.tasks.length > 0) {
         this.emit("get_task", tuple.data);
       }

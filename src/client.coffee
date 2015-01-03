@@ -5,13 +5,13 @@ LindaAdapter = require 'babascript-linda-adapter'
 _ = require 'lodash'
 
 class Client extends EventEmitter
-  @address = ''
+  @address = 'http://babascript-linda.herokuapp.com'
 
   constructor: (@id, @options = {}) ->
     if @options.adapter?
       @adapter = @options.adapter
     else
-      @adapter = new LindaAdapter Client.address
+      @adapter = new LindaAdapter @address, {port: 80}
     @adapter.attach @
     @tasks = []
     @data = {}
@@ -19,6 +19,8 @@ class Client extends EventEmitter
     @plugins = {}
     @clientId = @getId()
     @on "connect", @connect
+    @isNormalTask = false
+    @isInterruptTask = false
     return @
 
   connect: =>
@@ -33,9 +35,14 @@ class Client extends EventEmitter
       task = @tasks[0]
       format = task.format
       @emit "get_task", task
-    else
+    if !@isNormalTask
       tuple = {baba: 'script', type: 'eval'}
       @adapter.clientReceive tuple, @getTask
+      @isNormalTask = true
+    if !@isInterruptTask
+      tuple = {baba: 'script', type: 'interrupt'}
+      @adapter.clientReceive tuple, @getTask
+      @isInterruptTask = true
 
   getBroadcast: ->
     t = {baba: "script", type: "broadcast"}
@@ -47,8 +54,13 @@ class Client extends EventEmitter
       _.each @tasks, (task, i) =>
         if task.cid is tuple.data.cid
           @tasks.splice i, 1
+          if task.type is 'interrupt'
+            @isInterruptTask = false
+          else if task.type is 'eval'
+            @isNormalTask = false
           if i is 0
-            @emit "cancel_task", {reason: 'cancel'}
+            reason = tuple.data.reason or 'cancel'
+            @emit "cancel_task", {reason: reason}
             @next()
 
   cancel: (reason) ->
@@ -61,6 +73,10 @@ class Client extends EventEmitter
       reason: reason
     @adapter.send tuple
     @emit "cancel_task", reason
+    if task.type is 'interrupt'
+      @isInterruptTask = false
+    else if task.type is 'eval'
+      @isNormalTask = false
     @next()
 
   returnValue: (value, options={}) ->
@@ -77,11 +93,23 @@ class Client extends EventEmitter
     for name, module of @plugins
       module.body?.returnValue tuple
     @emit "return_value", tuple
+    if task.type is 'interrupt'
+      @isInterruptTask = false
+    else if task.type is 'eval'
+      @isNormalTask = false
     @next()
 
   getTask: (err, tuple) =>
     return err if err
-    @tasks.push tuple.data
+    if tuple.data.type is 'eval'
+      @tasks.push tuple.data
+    else if tuple.data.type is 'interrupt'
+      __tasks = []
+      if @tasks.length > 0
+        __tasks.push @tasks.shift()
+      __tasks.push tuple.data
+      __tasks.push @tasks
+      @tasks = __tasks
     if @tasks.length > 0
       @emit "get_task", tuple.data
     for name, module of @plugins
