@@ -15,7 +15,8 @@
   "dependencies": {
     "babascript": "^0.1.13",
     "lodash": "^2.4.1",
-    "babascript-linda-adapter": "*"
+    "babascript-linda-adapter": "*",
+    "backbone": "^1.1.2"
   },
   "devDependencies": {
     "babascript": "^0.1.12",
